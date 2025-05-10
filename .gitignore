@@ -1,1 +1,9 @@
-venv
+venv/
+*/_pycaches/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+sample_audio/transcriptions/*
+
+.clinerules

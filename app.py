@@ -157,6 +157,11 @@ if __name__ == "__main__":
     root.title("Local Transcribe with Whisper")
     width, height = 450,450
     root.geometry('{}x{}'.format(width, height))
-    root.iconbitmap('images/icon.ico')
+    # Handle icon differently for Linux vs Windows
+    import sys
+    import os
+    if sys.platform.startswith('win'):
+        root.iconbitmap('images/icon.ico')
+    # Skip icon setting on Linux/WSL2
     app = App(root)
     root.mainloop()

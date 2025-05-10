@@ -1,68 +1,150 @@
-## Local Transcribe with Whisper 
-Local Transcribe with Whisper is a user-friendly desktop application that allows you to transcribe audio and video files using the Whisper ASR system. This application provides a graphical user interface (GUI) built with Python and the Tkinter library, making it easy to use even for those not familiar with programming.
+# Local Transcribe with Whisper 
+A simple desktop application to transcribe audio and video files using OpenAI's Whisper speech recognition system. No programming experience required!
 
-## New in version 1.2!
-1. Simpler usage:
-    1. File type: You no longer need to specify file type. The program will only transcribe elligible files.
-    2. Language: Added option to specify language, which might help in some cases. Clear the default text to run automatic language recognition.
-    3. Model selection: Now a dropdown option that includes most models for typical use. 
-2. New and improved GUI.  
-![python GUI.py](images/gui-windows.png)
+![GUI Interface](images/gui-windows.png)
+
+## What's New in Version 1.2
+- **Automatic file detection** - No need to specify file types anymore
+- **Language options** - Specify language or leave blank for auto-detection
+- **Easy model selection** - Simple dropdown with all available models
+- **Improved interface** - More user-friendly GUI
 
 ## Features
-* Select the folder containing the audio or video files you want to transcribe. Tested with m4a video. 
-* Choose the language of the files you are transcribing. You can either select a specific language or let the application automatically detect the language.
-* Select the Whisper model to use for the transcription. Available models include "base.en", "base", "small.en", "small", "medium.en", "medium", and "large". Models with .en ending are better if you're transcribing English, especially the base and small models.
-* Enable the verbose mode to receive detailed information during the transcription process.
-* Monitor the progress of the transcription with the progress bar and terminal. 
-* Confirmation dialog before starting the transcription to ensure you have selected the correct folder.
-* View the transcribed text in a message box once the transcription is completed.
 
-## Installation
-### Get the files
-Download the zip folder and extract it to your preferred working folder.  
-![](images/Picture1.png)  
-Or by cloning the repository with:
-```
-git clone https://github.com/soderstromkr/transcribe.git
-```
-### Python Version **(any platform including Mac users)**
-1. This script was made and tested in an Anaconda environment with Python 3.10. I recommend miniconda for a smaller installation, and if you're not familiar with Python.
-See [here](https://docs.anaconda.com/free/miniconda/miniconda-install/) for instructions. You will **need administrator rights**. 
-2. Whisper also requires some additional libraries. The [setup](https://github.com/openai/whisper#setup) page states: "The codebase also depends on a few Python packages, most notably HuggingFace Transformers for their fast tokenizer implementation and ffmpeg-python for reading audio files."
-Users might not need to specifically install Transfomers. However, a conda installation might be needed for ffmpeg[^1], which takes care of setting up PATH variables.
+- **Folder Processing**: Select a folder and transcribe all compatible audio/video files at once
+- **Language Options**: Auto-detect or specify for better accuracy 
+- **Model Selection**: Choose from various sizes ("base" to "large") with English-specialized options (".en" models)
+- **Progress Tracking**: Monitor transcription with progress bar and terminal output
+- **Export Options**: Save as regular text or SRT subtitle format
+- **Segment Control**: Adjust maximum and minimum segment durations
 
-From the Anaconda Prompt (which should now be installed in your system, find it with the search function), type or copy the following:
-```
-conda install -c conda-forge ffmpeg-python
-```
-You can also choose not to use Anaconda (or miniconda), and use Python. In that case, you need to [download and install FFMPEG](https://ffmpeg.org/download.html) (and potentially add it to your PATH). See here for [WikiHow instructions](https://www.wikihow.com/Install-FFmpeg-on-Windows)
+## Installation Options
 
-3. The main functionality comes from openai-whisper. See their [page](https://github.com/openai/whisper) for details. It also uses some additional packages (colorama, and customtkinter), install them with the following command:
-```
-pip install -r requirements.txt
-```
-4. Run the app: 
-    1. For **Windows**: In the same folder as the *app.py* file, run the app from Anaconda prompt by running
-```python app.py```
-or with the batch file called run_Windows.bat (for Windows users), which assumes you have conda installed and in the base environment (This is for simplicity, but users are usually adviced to create an environment, see [here](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands) for more info) just make sure you have the correct environment (right click on the file and press edit to make any changes). 
-    3. For **Mac**: Haven't figured out a better way to do this, see [the instructions here](Mac_instructions.md)
+### Option 1: Windows Installation
+1. **Download the files**:
+   - Download the [ZIP file](https://github.com/soderstromkr/transcribe/archive/refs/heads/main.zip) and extract it
+   - Or clone with git: `git clone https://github.com/soderstromkr/transcribe.git`
 
-    **Note** If you want to download a model first, and then go offline for transcription, I recommend running the model with the default sample folder, which will download the model locally. 
-## Usage
-1. When launched, the app will also open a terminal that shows some additional information.
-2. Select the folder containing the audio or video files you want to transcribe by clicking the "Browse" button next to the "Folder" label. This will open a file dialog where you can navigate to the desired folder. Remember, you won't be choosing individual files but whole folders!
-3. Enter the desired language for the transcription in the "Language" field. You can either select a language or leave it blank to enable automatic language detection.
-4. Choose the Whisper model to use for the transcription from the dropdown list next to the "Model" label.
-5. Enable the verbose mode by checking the "Verbose" checkbox if you want to receive detailed information during the transcription process.
-6. Click the "Transcribe" button to start the transcription. The button will be disabled during the process to prevent multiple transcriptions at once.
-7. Monitor the progress of the transcription with the progress bar.
-8. Once the transcription is completed, a message box will appear displaying the transcribed text. Click "OK" to close the message box.
-9. You can run the application again or quit the application at any time by clicking the "Quit" button.
+2. **Install Python dependencies**:
+   - Install [Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) (recommended for beginners)
+   - Install FFmpeg through conda:
+     ```
+     conda install -c conda-forge ffmpeg-python
+     ```
+   - Install other dependencies:
+     ```
+     pip install -r requirements.txt
+     ```
 
-## Jupyter Notebook
-Don't want fancy EXEs or GUIs? Use the function as is. See [example](example.ipynb) for an implementation on Jupyter Notebook.
+3. **Run the application**:
+   - From Anaconda Prompt: `python app.py`
+   - Or use the included `run_Windows.bat` file
 
-[^1]: Advanced users can use ```pip install ffmpeg-python``` but be ready to deal with some [PATH issues](https://stackoverflow.com/questions/65836756/python-ffmpeg-wont-accept-path-why), which I encountered in Windows 11.
+### Option 2: WSL2 (Windows Subsystem for Linux) Setup
+Setting up the GUI application in WSL2 requires a few extra steps:
+
+1. **Install X Server** (to display the GUI):
+   - Download and install [VcXsrv](https://sourceforge.net/projects/vcxsrv/) (free)
+   - Launch XLaunch and configure:
+     - Select "Multiple windows"
+     - Set display number to "0"
+     - Select "Start no client"
+     - **Important**: Check "Disable access control"
+     - Save configuration for future use
+
+2. **Configure WSL2**: 
+   - Add to your `~/.bashrc` file:
+     ```bash
+     # Add these two lines:
+     export DISPLAY=$(grep -m 1 nameserver /etc/resolv.conf | awk '{print $2}'):0
+     export LIBGL_ALWAYS_INDIRECT=1
+     ```
+   - Apply changes: `source ~/.bashrc`
+
+3. **Install dependencies**:
+   ```bash
+   # Create virtual environment
+   python3 -m venv venv
+   source venv/bin/activate
+   
+   # Install required packages
+   sudo apt-get update
+   sudo apt-get install -y python3-tk ffmpeg
+   pip install -r requirements.txt
+   ```
+
+4. **Fix icon compatibility**:
+   - Edit `app.py` to handle Linux/WSL2:
+     ```python
+     # Change this line:
+     # root.iconbitmap('images/icon.ico')
+     
+     # To this:
+     import sys
+     if sys.platform.startswith('win'):
+         root.iconbitmap('images/icon.ico')
+     # Skip icon for Linux
+     ```
+
+5. **Run the app**:
+   ```bash
+   # Make sure X Server is running on Windows
+   source venv/bin/activate
+   python app.py
+   ```
+
+### Option 3: Mac Setup
+See detailed instructions in [Mac_instructions.md](Mac_instructions.md)
+
+### Building an Executable (Windows)
+The application includes `build_setup.py` for creating a standalone Windows executable using cx_Freeze:
+
+1. Install cx_Freeze: `pip install cx_freeze`
+2. Run the build script: `python build_setup.py build`
+3. Find the executable in the `build` directory
+
+## How to Use
+
+1. **Start the application**
+   - The app will open with a GUI window and a terminal for additional info
+
+2. **Select folder**
+   - Click "Browse" to select a folder containing your audio/video files
+   - Note: The app processes entire folders, not individual files
+
+3. **Choose settings**
+   - **Model**: Select from dropdown (smaller models are faster, larger are more accurate)
+   - **Language**: Leave blank for auto-detection or specify a language
+   - **Segment Duration**: Optionally set min/max segment length in seconds
+   - **Format**: Check "Export as SRT" for subtitle format (optional)
+   - **Verbose mode**: Enable for detailed transcription progress in terminal
+
+4. **Run transcription**
+   - Click "Transcribe" to begin
+   - A progress bar will display the status
+   - Transcribed files will be saved in a "transcriptions" folder within your selected directory
+
+5. **View results**
+   - When complete, a message will show the transcription output
+   - Find all transcribed files in the "transcriptions" subfolder
+
+**Tip**: To run offline later, first use the app online with the sample folder to download and cache the model files locally.
+## For Developers
+
+- **Jupyter Notebook**: See [example.ipynb](example.ipynb) for using the transcription function directly
+- **Code Structure**: Core transcription logic is in `src/_LocalTranscribe.py`, GUI in `app.py`
+- **Dependencies**: Listed in `requirements.txt` (openai-whisper, customtkinter, colorama)
+- **Performance Notes**: Processing speed depends on model size and your hardware
+
+## Troubleshooting
+
+- **Display issues in WSL2**: Verify X Server is running and DISPLAY is set correctly
+- **Missing GUI components**: Install additional libraries: `sudo apt-get install -y libxcb-xinerama0 libxcb-icccm4`
+- **FFmpeg errors**: Ensure ffmpeg is installed and in your PATH
+- **Slow performance**: Try using a smaller model like "base" or "small"
+
+---
+
+[^1]: If not using Conda, see [these instructions](https://stackoverflow.com/questions/65836756/python-ffmpeg-wont-accept-path-why) for handling PATH issues with ffmpeg-python.
 
 [![DOI](https://zenodo.org/badge/617404576.svg)](https://zenodo.org/badge/latestdoi/617404576)

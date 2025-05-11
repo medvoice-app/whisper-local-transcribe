@@ -93,9 +93,6 @@ Setting up the GUI application in WSL2 requires a few extra steps:
    python app.py
    ```
 
-### Option 3: Mac Setup
-See detailed instructions in [Mac_instructions.md](Mac_instructions.md)
-
 ### Building an Executable (Windows)
 The application includes `build_setup.py` for creating a standalone Windows executable using cx_Freeze:
 

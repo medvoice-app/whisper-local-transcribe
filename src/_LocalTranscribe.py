@@ -10,14 +10,47 @@ colorama.init(autoreset=True)
 def get_path(path):
     return glob(path + '/*')
 
-def transcribe(path, glob_file, model=None, language=None, verbose=False, max_segment_duration=None, srt_format=False, min_segment_duration=0):
+def transcribe(path, glob_file, model=None, language=None, verbose=False, max_segment_duration=None, srt_format=False, min_segment_duration=0, model_instance=None, callback=None):
+    """
+    Transcribe audio files using OpenAI's Whisper model.
+    
+    Args:
+        path: Directory path where transcriptions will be saved
+        glob_file: List of audio files to transcribe
+        model: Whisper model name to use ('tiny', 'base', 'small', 'medium', 'large')
+        language: Language code (e.g., 'en', 'fr')
+        verbose: Whether to print verbose output
+        max_segment_duration: Maximum duration of each segment in seconds
+        srt_format: Whether to output in SRT format
+        min_segment_duration: Minimum duration of each segment in seconds
+        model_instance: Pre-loaded model instance (for reuse/caching)
+        callback: Optional callback function to update progress (receives percentage and status message)
+    
+    Returns:
+        Message indicating completion status
+    """
+    # Determine device and inform user
     device = "cuda" if cuda.is_available() else "cpu"
     print(f"Using {device.upper()} for transcription")
-
-    model = whisper.load_model(model).to(device)
+    
+    # Ensure glob_file is a list
+    if isinstance(glob_file, str):
+        glob_file = [glob_file]
+    
+    # Use the provided model instance if available, otherwise load a new one
+    if model_instance is not None:
+        model_obj = model_instance
+    else:
+        model_obj = whisper.load_model(model).to(device)
+    
     files_transcripted = []
-
-    for file in glob_file:
+    total_files = len(glob_file)
+    
+    for i, file in enumerate(glob_file):
+        # Update progress if callback provided
+        if callback:
+            callback(i * 100 // total_files, f"Processing file {i+1}/{total_files}")
+        
         title = os.path.basename(file).split('.')[0]
         print(Back.CYAN + f'\nTrying to transcribe file named: {title}\U0001f550')
 
@@ -29,7 +62,7 @@ def transcribe(path, glob_file, model=None, language=None, verbose=False, max_se
                 'fp16': cuda.is_available()
             }
 
-            result = model.transcribe(file, **transcribe_kwargs)
+            result = model_obj.transcribe(file, **transcribe_kwargs)
             files_transcripted.append(result)
             os.makedirs(f'{path}/transcriptions', exist_ok=True)
 
@@ -45,7 +78,8 @@ def transcribe(path, glob_file, model=None, language=None, verbose=False, max_se
                         'text': segment['text']
                     })
 
-            with open(f"{path}/transcriptions/{title}.{'srt' if srt_format else 'txt'}", 'w', encoding='utf-8') as f:
+            output_file = f"{path}/transcriptions/{title}.{'srt' if srt_format else 'txt'}"
+            with open(output_file, 'w', encoding='utf-8') as f:
                 if srt_format:
                     for i, seg in enumerate(segments, start=1):
                         f.write(f"{i}\n")
@@ -58,11 +92,16 @@ def transcribe(path, glob_file, model=None, language=None, verbose=False, max_se
                         end = str(datetime.timedelta(seconds=seg['end'])).split('.')[0]
                         f.write(f"\n[{start} --> {end}]: {seg['text']}")
 
-        except RuntimeError:
-            print(Fore.RED + 'Not a valid file, skipping.')
+        except RuntimeError as e:
+            print(Fore.RED + f'Error transcribing file: {str(e)}')
+            if callback:
+                callback(-1, f"Error transcribing {title}: {str(e)}")
             continue
 
-    return f'Finished transcription, {len(files_transcripted)} files in {path}/transcriptions'
+    completion_msg = f'Finished transcription, {len(files_transcripted)} files in {path}/transcriptions'
+    if callback:
+        callback(100, completion_msg)
+    return completion_msg
 
 def split_segment(segment, max_duration, min_duration=0):
     # If the entire segment is already short, return it as is.

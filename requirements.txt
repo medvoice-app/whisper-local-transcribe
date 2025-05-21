@@ -1,3 +1,11 @@
 openai-whisper
-customtkinter
 colorama
+# Server dependencies
+fastapi
+uvicorn
+python-multipart
+httpx
+# Testing dependencies
+pytest
+pytest-asyncio
+pytest-mock

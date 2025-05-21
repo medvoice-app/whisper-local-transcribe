@@ -1,167 +1,241 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog
-from tkinter import messagebox
+import customtkinter as ctk
+import sys
+import os
+import subprocess
+from pathlib import Path
+from threading import Thread
+from tkinter import filedialog, messagebox, StringVar
+
+# Add src directory to path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+
 from src._LocalTranscribe import transcribe, get_path
-import customtkinter
-import threading
-from colorama import Back
-import colorama
-colorama.init(autoreset=True)
-import os 
 
-customtkinter.set_appearance_mode("System")
-customtkinter.set_default_color_theme("blue")  # Themes: blue (default), dark-blue, green
-firstclick = True
 
-class App:
-    def __init__(self, master):
+class App(ctk.CTk):
+    def __init__(self):
+        super().__init__()
         print(Back.CYAN + "Welcome to Local Transcribe with Whisper!\U0001f600\nCheck back here to see some output from your transcriptions.\nDon't worry, they will also be saved on the computer!\U0001f64f")
-        self.master = master
-        font = ('Roboto', 13, 'bold')  
-        font_b = ('Roboto', 12)  
 
-        # Folder selection frame
-        path_frame = customtkinter.CTkFrame(master)
-        path_frame.pack(fill=tk.BOTH, padx=10, pady=10)
-        customtkinter.CTkLabel(path_frame, text="Folder:", font=font).pack(side=tk.LEFT, padx=5)
-        self.path_entry = customtkinter.CTkEntry(path_frame, width=50, font=font_b)
-        self.path_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        customtkinter.CTkButton(path_frame, text="Browse", command=self.browse, font=font).pack(side=tk.LEFT, padx=5)
-
-        # Max segment duration frame
-        max_duration_frame = customtkinter.CTkFrame(master)
-        max_duration_frame.pack(fill=tk.BOTH, padx=10, pady=10)
-        customtkinter.CTkLabel(max_duration_frame, text="Max Segment (sec):", font=font).pack(side=tk.LEFT, padx=5)
-        self.max_duration_entry = customtkinter.CTkEntry(max_duration_frame, width=50, placeholder_text="0 = no limit", font=font_b)
-        self.max_duration_entry.pack(side=tk.LEFT, fill=tk.X, expand=True) 
-
-        # **New** Minimum segment duration frame
-        min_duration_frame = customtkinter.CTkFrame(master)
-        min_duration_frame.pack(fill=tk.BOTH, padx=10, pady=10)
-        customtkinter.CTkLabel(min_duration_frame, text="Min Segment (sec):", font=font).pack(side=tk.LEFT, padx=5)
-        self.min_duration_entry = customtkinter.CTkEntry(min_duration_frame, width=50, placeholder_text="0 = no limit", font=font_b)
-        self.min_duration_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        # Language frame
-        def on_entry_click(event):
-            """function that gets called whenever entry is clicked"""        
-            global firstclick
-            if firstclick:
-                firstclick = False
-                self.language_entry.delete(0, "end") 
-        language_frame = customtkinter.CTkFrame(master)
-        language_frame.pack(fill=tk.BOTH, padx=10, pady=10)
-        customtkinter.CTkLabel(language_frame, text="Language:", font=font).pack(side=tk.LEFT, padx=5)
-        self.language_entry = customtkinter.CTkEntry(language_frame, width=50, font=('Roboto', 12, 'italic'))
-        self.default_language_text = "Enter language (or ignore to auto-detect)"
-        self.language_entry.insert(0, self.default_language_text)
-        self.language_entry.bind('<FocusIn>', on_entry_click)
-        self.language_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        # Model frame
-        models = ['base.en', 'base', 'small.en', 'small', 'medium.en', 'medium', 'large']
-        model_frame = customtkinter.CTkFrame(master)
-        model_frame.pack(fill=tk.BOTH, padx=10, pady=10)
-        customtkinter.CTkLabel(model_frame, text="Model:", font=font).pack(side=tk.LEFT, padx=5)
-        self.model_combobox = customtkinter.CTkComboBox(model_frame, width=50, state="readonly",
-                                                        values=models, font=font_b)
-        self.model_combobox.set(models[1])  
-        self.model_combobox.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        # Verbose frame
-        verbose_frame = customtkinter.CTkFrame(master)
-        verbose_frame.pack(fill=tk.BOTH, padx=10, pady=10)
-        self.verbose_var = tk.BooleanVar()
-        customtkinter.CTkCheckBox(verbose_frame, text="Output transcription to terminal", variable=self.verbose_var, font=font).pack(side=tk.LEFT, padx=5)
-
-        # Output Format Frame
-        output_frame = customtkinter.CTkFrame(master)
-        output_frame.pack(fill=tk.BOTH, padx=10, pady=10)
-        self.srt_var = tk.BooleanVar()
-        customtkinter.CTkCheckBox(output_frame, text="Export as SRT", variable=self.srt_var, font=font).pack(side=tk.LEFT, padx=5)
-
-        # Progress Bar
-        self.progress_bar = ttk.Progressbar(master, length=200, mode='indeterminate')
-
-        # Button actions frame
-        button_frame = customtkinter.CTkFrame(master)
-        button_frame.pack(fill=tk.BOTH, padx=10, pady=10)
-        self.transcribe_button = customtkinter.CTkButton(button_frame, text="Transcribe", command=self.start_transcription, font=font)
-        self.transcribe_button.pack(side=tk.LEFT, padx=5, pady=10, fill=tk.X, expand=True)
-        customtkinter.CTkButton(button_frame, text="Quit", command=master.quit, font=font).pack(side=tk.RIGHT, padx=5, pady=10, fill=tk.X, expand=True)
-
-    # Helper functions
-    def browse(self):
-        initial_dir = os.getcwd()
-        folder_path = filedialog.askdirectory(initialdir=initial_dir)
-        self.path_entry.delete(0, tk.END)
-        self.path_entry.insert(0, folder_path)
-
+        # Configure window
+        self.title("Whisper Local Transcribe")
+        self.geometry("800x600")
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        
+        # Try to set icon if on Windows
+        try:
+            icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images", "icon.ico")
+            if os.path.exists(icon_path) and sys.platform.startswith('win'):
+                self.iconbitmap(icon_path)
+        except Exception as e:
+            print(f"Could not set icon: {e}")
+        
+        # Create main container
+        self.main_frame = ctk.CTkFrame(self)
+        self.main_frame.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+        self.main_frame.grid_columnconfigure(0, weight=1)
+        
+        # Create title
+        self.title_label = ctk.CTkLabel(self.main_frame, text="Whisper Local Transcribe", font=ctk.CTkFont(size=24, weight="bold"))
+        self.title_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+        
+        # Create model selection
+        self.model_frame = ctk.CTkFrame(self.main_frame)
+        self.model_frame.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
+        
+        self.model_label = ctk.CTkLabel(self.model_frame, text="Model:")
+        self.model_label.grid(row=0, column=0, padx=10, pady=10)
+        
+        self.models = ["tiny", "base", "small", "medium", "large"]
+        
+        self.model_var = StringVar(value="base")
+        self.model_select = ctk.CTkOptionMenu(
+            self.model_frame,
+            values=self.models,
+            variable=self.model_var
+        )
+        self.model_select.grid(row=0, column=1, padx=10, pady=10)
+        
+        # Create language selection
+        self.lang_label = ctk.CTkLabel(self.model_frame, text="Language (optional):")
+        self.lang_label.grid(row=0, column=2, padx=10, pady=10)
+        
+        self.lang_var = StringVar(value="")
+        self.lang_entry = ctk.CTkEntry(self.model_frame, textvariable=self.lang_var, width=60)
+        self.lang_entry.grid(row=0, column=3, padx=10, pady=10)
+        
+        # Create output format selection
+        self.format_frame = ctk.CTkFrame(self.main_frame)
+        self.format_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+        
+        self.srt_var = tk.BooleanVar(value=True)
+        self.srt_checkbox = ctk.CTkCheckBox(self.format_frame, text="SRT Format", variable=self.srt_var)
+        self.srt_checkbox.grid(row=0, column=0, padx=10, pady=10)
+        
+        self.verbose_var = tk.BooleanVar(value=False)
+        self.verbose_checkbox = ctk.CTkCheckBox(self.format_frame, text="Verbose Output", variable=self.verbose_var)
+        self.verbose_checkbox.grid(row=0, column=1, padx=10, pady=10)
+        
+        # Create segment duration options
+        self.segment_frame = ctk.CTkFrame(self.main_frame)
+        self.segment_frame.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+        
+        self.max_segment_label = ctk.CTkLabel(self.segment_frame, text="Max Segment Duration (sec):")
+        self.max_segment_label.grid(row=0, column=0, padx=10, pady=10)
+        
+        self.max_segment_var = StringVar(value="0")
+        self.max_segment_entry = ctk.CTkEntry(self.segment_frame, textvariable=self.max_segment_var, width=60)
+        self.max_segment_entry.grid(row=0, column=1, padx=10, pady=10)
+        
+        self.min_segment_label = ctk.CTkLabel(self.segment_frame, text="Min Segment Duration (sec):")
+        self.min_segment_label.grid(row=0, column=2, padx=10, pady=10)
+        
+        self.min_segment_var = StringVar(value="0")
+        self.min_segment_entry = ctk.CTkEntry(self.segment_frame, textvariable=self.min_segment_var, width=60)
+        self.min_segment_entry.grid(row=0, column=3, padx=10, pady=10)
+        
+        # Create file selection section
+        self.file_frame = ctk.CTkFrame(self.main_frame)
+        self.file_frame.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+        
+        self.file_label = ctk.CTkLabel(self.file_frame, text="No file or directory selected")
+        self.file_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        
+        self.select_file_button = ctk.CTkButton(self.file_frame, text="Select File", command=self.select_file)
+        self.select_file_button.grid(row=0, column=1, padx=10, pady=10)
+        
+        self.select_dir_button = ctk.CTkButton(self.file_frame, text="Select Directory", command=self.select_directory)
+        self.select_dir_button.grid(row=0, column=2, padx=10, pady=10)
+        
+        # Create transcription button
+        self.transcribe_button = ctk.CTkButton(self.main_frame, text="Transcribe", command=self.start_transcription)
+        self.transcribe_button.grid(row=5, column=0, padx=20, pady=(10, 20))
+        
+        # Create progress section
+        self.progress_frame = ctk.CTkFrame(self.main_frame)
+        self.progress_frame.grid(row=6, column=0, padx=20, pady=10, sticky="ew")
+        self.progress_frame.grid_columnconfigure(0, weight=1)
+        
+        self.progress_label = ctk.CTkLabel(self.progress_frame, text="")
+        self.progress_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        
+        self.progress_bar = ctk.CTkProgressBar(self.progress_frame)
+        self.progress_bar.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="ew")
+        self.progress_bar.set(0)
+        
+        # Initialize variables
+        self.selected_path = None
+        self.is_file = False
+        self.transcription_running = False
+        self.transcription_thread = None
+    
+    def select_file(self):
+        file_path = filedialog.askopenfilename(
+            title="Select Audio File",
+            filetypes=[("Audio Files", "*.mp3 *.wav *.aac *.flac *.m4a *.ogg")]
+        )
+        if file_path:
+            self.selected_path = file_path
+            self.is_file = True
+            self.file_label.configure(text=f"Selected File: {os.path.basename(file_path)}")
+    
+    def select_directory(self):
+        dir_path = filedialog.askdirectory(title="Select Directory with Audio Files")
+        if dir_path:
+            self.selected_path = dir_path
+            self.is_file = False
+            self.file_label.configure(text=f"Selected Directory: {os.path.basename(dir_path)}")
+    
+    def update_progress(self, percent, message):
+        if percent < 0:
+            # Error occurred
+            messagebox.showerror("Error", message)
+            self.progress_label.configure(text=f"Error: {message}")
+            self.progress_bar.set(0)
+            self.transcribe_button.configure(state="normal")
+            self.transcription_running = False
+        else:
+            self.progress_label.configure(text=message)
+            self.progress_bar.set(percent/100)
+            if percent >= 100:
+                self.progress_label.configure(text="Transcription complete!")
+                self.transcribe_button.configure(state="normal")
+                self.transcription_running = False
+    
     def start_transcription(self):
-        # Disable transcribe button
-        self.transcribe_button.configure(state=tk.DISABLED)
-        # Start a new thread for the transcription process
-        threading.Thread(target=self.transcribe_thread).start()
-
-    def transcribe_thread(self):
-        path = self.path_entry.get()
-        model = self.model_combobox.get()
-        language = self.language_entry.get()
+        if self.transcription_running:
+            return
+        
+        if not self.selected_path:
+            messagebox.showerror("Error", "Please select a file or directory first.")
+            return
+        
+        # Get transcription options
+        model = self.model_var.get()
+        language = self.lang_var.get() or None
         srt_format = self.srt_var.get()
-        if language == self.default_language_text or not language.strip():
-            language = None
         verbose = self.verbose_var.get()
-
-        self.progress_bar.pack(fill=tk.X, padx=5, pady=5)
-        self.progress_bar.start()
-
-        glob_file = get_path(path)
+        
         try:
-            max_duration_str = self.max_duration_entry.get().strip()
-            max_duration = float(max_duration_str) if max_duration_str else 0
-            max_duration = max_duration if max_duration > 0 else None
+            max_segment = float(self.max_segment_var.get()) if self.max_segment_var.get() else 0
+            min_segment = float(self.min_segment_var.get()) if self.min_segment_var.get() else 0
         except ValueError:
-            max_duration = None 
-            messagebox.showwarning("Invalid Duration", "Using default segment duration")
-
+            messagebox.showerror("Error", "Segment duration must be a number.")
+            return
+        
+        # Disable the button while transcribing
+        self.transcribe_button.configure(state="disabled")
+        self.transcription_running = True
+        self.progress_label.configure(text="Starting transcription...")
+        self.progress_bar.set(0)
+        
+        # Start transcription in a separate thread
+        self.transcription_thread = Thread(
+            target=self.run_transcription,
+            args=(model, language, srt_format, verbose, max_segment, min_segment)
+        )
+        self.transcription_thread.daemon = True
+        self.transcription_thread.start()
+    
+    def run_transcription(self, model, language, srt_format, verbose, max_segment, min_segment):
         try:
-            # **New** Read minimum segment duration
-            min_duration_str = self.min_duration_entry.get().strip()
-            min_duration = float(min_duration_str) if min_duration_str else 0
-            # Use 0 if no valid minimum is provided
-            min_duration = min_duration if min_duration > 0 else 0
-        except ValueError:
-            min_duration = 0 
-            messagebox.showwarning("Invalid Duration", "Using default segment minimum duration")
+            if self.is_file:
+                # Single file transcription
+                dir_path = os.path.dirname(self.selected_path)
+                file_list = [self.selected_path]
+            else:
+                # Directory transcription
+                dir_path = self.selected_path
+                file_list = []
+                for ext in [".mp3", ".wav", ".aac", ".flac", ".m4a", ".ogg"]:
+                    file_list.extend([str(f) for f in Path(dir_path).glob(f"*{ext}")])
+                
+                if not file_list:
+                    self.after(0, lambda: self.update_progress(-1, "No audio files found in the selected directory."))
+                    return
+            
+            result = transcribe(
+                path=dir_path,
+                glob_file=file_list,
+                model=model,
+                language=language,
+                verbose=verbose,
+                max_segment_duration=max_segment if max_segment > 0 else None,
+                srt_format=srt_format,
+                min_segment_duration=min_segment if min_segment > 0 else 0,
+                callback=self.update_progress
+            )
+            
+            # Show the result when completed
+            self.after(0, lambda: self.update_progress(100, result))
+            
+        except Exception as e:
+            # Show any errors
+            self.after(0, lambda: self.update_progress(-1, str(e)))
 
-        try:
-            output_text = transcribe(path, glob_file, model, language, verbose, max_duration, srt_format, min_segment_duration=min_duration)
-        except UnboundLocalError:
-            messagebox.showinfo("Files not found error!", 'Nothing found, choose another folder.')
-            output_text = ""
-        except ValueError:
-            messagebox.showinfo("Invalid language name", "You might have to clear the default text to continue!")
-            output_text = ""
-
-        self.progress_bar.stop()
-        self.progress_bar.pack_forget()
-        self.transcribe_button.configure(state=tk.NORMAL)
-        try:
-            messagebox.showinfo("Finished!", output_text)
-        except UnboundLocalError:
-            pass
 
 if __name__ == "__main__":
-    root = customtkinter.CTk()
-    root.title("Local Transcribe with Whisper")
-    width, height = 450,450
-    root.geometry('{}x{}'.format(width, height))
-    # Handle icon differently for Linux vs Windows
-    import sys
-    import os
-    if sys.platform.startswith('win'):
-        root.iconbitmap('images/icon.ico')
-    # Skip icon setting on Linux/WSL2
-    app = App(root)
-    root.mainloop()
+    app = App()
+    app.mainloop()

@@ -1,9 +1,40 @@
-venv/
-*/_pycaches/
-__pycache__/
+# Python bytecode
+**/__pycache__
 *.py[cod]
-*.pyo
-*.pyd
-sample_audio/transcriptions/*
+*$py.class
 
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Uploaded files and transcriptions 
+uploads/
+*.wav
+*.mp3
+*.ogg
+*.flac
+*.m4a
+sample_audio/transcriptions/*.txt
+sample_audio/transcriptions/*.srt
+
+# IDE files
+.idea/
+.vscode/
+
+# Environment variables
+.env
+
+# System files
+.DS_Store
+Thumbs.db
+.cache/
 .clinerules

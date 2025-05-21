@@ -1,147 +1,139 @@
-# Local Transcribe with Whisper 
-A simple desktop application to transcribe audio and video files using OpenAI's Whisper speech recognition system. No programming experience required!
+# Whisper Local Transcribe
 
-![GUI Interface](images/gui-windows.png)
-
-## What's New in Version 1.2
-- **Automatic file detection** - No need to specify file types anymore
-- **Language options** - Specify language or leave blank for auto-detection
-- **Easy model selection** - Simple dropdown with all available models
-- **Improved interface** - More user-friendly GUI
+A simple application for transcribing audio files using OpenAI's Whisper model, with both GUI and API interfaces.
 
 ## Features
 
-- **Folder Processing**: Select a folder and transcribe all compatible audio/video files at once
-- **Language Options**: Auto-detect or specify for better accuracy 
-- **Model Selection**: Choose from various sizes ("base" to "large") with English-specialized options (".en" models)
-- **Progress Tracking**: Monitor transcription with progress bar and terminal output
-- **Export Options**: Save as regular text or SRT subtitle format
-- **Segment Control**: Adjust maximum and minimum segment durations
+- Desktop GUI application (tkinter-based)
+- FastAPI server for API-based transcription
+- Single file and batch directory transcription
+- SRT and TXT output formats
+- Multiple language support
+- Segment duration control for better readability
+- Support for all Whisper models (tiny, base, small, medium, large)
 
-## Installation Options
+## Quick Start Guide
 
-### Option 1: Windows Installation
-1. **Download the files**:
-   - Download the [ZIP file](https://github.com/soderstromkr/transcribe/archive/refs/heads/main.zip) and extract it
-   - Or clone with git: `git clone https://github.com/soderstromkr/transcribe.git`
-
-2. **Install Python dependencies**:
-   - Install [Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/) (recommended for beginners)
-   - Install FFmpeg through conda:
-     ```
-     conda install -c conda-forge ffmpeg-python
-     ```
-   - Install other dependencies:
-     ```
-     pip install -r requirements.txt
-     ```
-
-3. **Run the application**:
-   - From Anaconda Prompt: `python app.py`
-   - Or use the included `run_Windows.bat` file
-
-### Option 2: WSL2 (Windows Subsystem for Linux) Setup
-Setting up the GUI application in WSL2 requires a few extra steps:
-
-1. **Install X Server** (to display the GUI):
-   - Download and install [VcXsrv](https://sourceforge.net/projects/vcxsrv/) (free)
-   - Launch XLaunch and configure:
-     - Select "Multiple windows"
-     - Set display number to "0"
-     - Select "Start no client"
-     - **Important**: Check "Disable access control"
-     - Save configuration for future use
-
-2. **Configure WSL2**: 
-   - Add to your `~/.bashrc` file:
-     ```bash
-     # Add these two lines:
-     export DISPLAY=$(grep -m 1 nameserver /etc/resolv.conf | awk '{print $2}'):0
-     export LIBGL_ALWAYS_INDIRECT=1
-     ```
-   - Apply changes: `source ~/.bashrc`
-
-3. **Install dependencies**:
+1. Install dependencies:
    ```bash
-   # Create virtual environment
-   python3 -m venv venv
-   source venv/bin/activate
-   
-   # Install required packages
-   sudo apt-get update
-   sudo apt-get install -y python3-tk ffmpeg
    pip install -r requirements.txt
    ```
 
-4. **Fix icon compatibility**:
-   - Edit `app.py` to handle Linux/WSL2:
-     ```python
-     # Change this line:
-     # root.iconbitmap('images/icon.ico')
-     
-     # To this:
-     import sys
-     if sys.platform.startswith('win'):
-         root.iconbitmap('images/icon.ico')
-     # Skip icon for Linux
-     ```
-
-5. **Run the app**:
+2. Run the GUI application:
    ```bash
-   # Make sure X Server is running on Windows
-   source venv/bin/activate
-   python app.py
+   python client/app.py
    ```
 
-### Building an Executable (Windows)
-The application includes `build_setup.py` for creating a standalone Windows executable using cx_Freeze:
+3. Use the interface to:
+   - Select a Whisper model
+   - Choose output format and options
+   - Select a file or directory of audio files
+   - Start transcription
 
-1. Install cx_Freeze: `pip install cx_freeze`
-2. Run the build script: `python build_setup.py build`
-3. Find the executable in the `build` directory
+2. Access the API at http://localhost:8000 (docs at /docs)
 
-## How to Use
+## File Structure
 
-1. **Start the application**
-   - The app will open with a GUI window and a terminal for additional info
+- `/client` - Desktop GUI application
+- `/server` - FastAPI server
+- `/src` - Core transcription logic
+- `/uploads` - Uploaded audio files
+- `/uploads/transcriptions` - Transcription output files
 
-2. **Select folder**
-   - Click "Browse" to select a folder containing your audio/video files
-   - Note: The app processes entire folders, not individual files
+## API Usage
 
-3. **Choose settings**
-   - **Model**: Select from dropdown (smaller models are faster, larger are more accurate)
-   - **Language**: Leave blank for auto-detection or specify a language
-   - **Segment Duration**: Optionally set min/max segment length in seconds
-   - **Format**: Check "Export as SRT" for subtitle format (optional)
-   - **Verbose mode**: Enable for detailed transcription progress in terminal
+### Method 1: One-Step Upload and Transcribe
 
-4. **Run transcription**
-   - Click "Transcribe" to begin
-   - A progress bar will display the status
-   - Transcribed files will be saved in a "transcriptions" folder within your selected directory
+```python
+import requests
 
-5. **View results**
-   - When complete, a message will show the transcription output
-   - Find all transcribed files in the "transcriptions" subfolder
+# Upload file and start transcription in one step
+files = {"file": open("audio.mp3", "rb")}
+params = {
+    "model": "base",
+    "language": "en",
+    "srt_format": True,
+    "verbose": True
+}
+response = requests.post("http://localhost:8000/upload_and_transcribe", files=files, params=params)
+task_id = response.json()["task_id"]
 
-**Tip**: To run offline later, first use the app online with the sample folder to download and cache the model files locally.
-## For Developers
+# Check status periodically
+response = requests.get(f"http://localhost:8000/status/{task_id}")
+status = response.json()["status"]
 
-- **Jupyter Notebook**: See [example.ipynb](example.ipynb) for using the transcription function directly
-- **Code Structure**: Core transcription logic is in `src/_LocalTranscribe.py`, GUI in `app.py`
-- **Dependencies**: Listed in `requirements.txt` (openai-whisper, customtkinter, colorama)
-- **Performance Notes**: Processing speed depends on model size and your hardware
+# Get result when completed
+if status == "completed":
+    response = requests.get(f"http://localhost:8000/result/{task_id}")
+    transcription = response.json()["transcription"]
+    print(transcription)
+```
 
-## Troubleshooting
+### Method 2: Separate Upload and Transcribe Steps
 
-- **Display issues in WSL2**: Verify X Server is running and DISPLAY is set correctly
-- **Missing GUI components**: Install additional libraries: `sudo apt-get install -y libxcb-xinerama0 libxcb-icccm4`
-- **FFmpeg errors**: Ensure ffmpeg is installed and in your PATH
-- **Slow performance**: Try using a smaller model like "base" or "small"
+```python
+import requests
 
----
+# Upload file
+files = {"file": open("audio.mp3", "rb")}
+response = requests.post("http://localhost:8000/upload", files=files)
+task_id = response.json()["task_id"]
 
-[^1]: If not using Conda, see [these instructions](https://stackoverflow.com/questions/65836756/python-ffmpeg-wont-accept-path-why) for handling PATH issues with ffmpeg-python.
+# Start transcription
+options = {
+    "model": "base",
+    "language": "en",
+    "srt_format": True
+}
+response = requests.post(f"http://localhost:8000/transcribe/{task_id}", json=options)
 
-[![DOI](https://zenodo.org/badge/617404576.svg)](https://zenodo.org/badge/latestdoi/617404576)
+# Check status
+response = requests.get(f"http://localhost:8000/status/{task_id}")
+status = response.json()["status"]
+
+# Get result when completed
+if status == "completed":
+    response = requests.get(f"http://localhost:8000/result/{task_id}")
+    transcription = response.json()["transcription"]
+    print(transcription)
+```
+
+## Server Configuration
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DEFAULT_MODEL` | Default model name | `base` |
+| `MAX_CONCURRENT_TASKS` | Maximum concurrent transcriptions | `1` |
+| `TASK_CLEANUP_HOURS` | Hours to keep tasks before cleanup | `24` |
+| `PYTORCH_CUDA_ALLOC_CONF` | PyTorch CUDA memory settings | `max_split_size_mb:512` |
+
+### Command Line Options for Debug Server
+
+```
+usage: run_debug_server.py [-h] [--host HOST] [--port PORT] [--reload] [--model MODEL]
+                          [--max-tasks MAX_TASKS] [--log-level LOG_LEVEL]
+
+Run the Whisper Local Transcribe API in debug mode
+
+options:
+  -h, --help            show this help message and exit
+  --host HOST           Host to bind the server to
+  --port PORT           Port to bind the server to
+  --reload              Enable auto-reload for development
+  --model MODEL         Default model to use for transcription
+  --max-tasks MAX_TASKS
+                        Maximum number of concurrent transcription tasks
+  --log-level LOG_LEVEL
+                        Logging level (debug, info, warning, error, critical)
+```
+
+## Memory Usage Guidelines
+
+To minimize memory usage:
+
+1. Use smaller models (tiny, base) for faster processing and lower memory footprint
+2. Process one file at a time (MAX_CONCURRENT_TASKS=1)
+3. Set memory limits in docker-compose.yaml if using Docker
+4. Use the PyTorch CUDA memory allocation settings to prevent GPU memory issues

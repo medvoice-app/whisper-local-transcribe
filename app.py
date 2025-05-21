@@ -16,7 +16,7 @@ from src._LocalTranscribe import transcribe, get_path
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        print(Back.CYAN + "Welcome to Local Transcribe with Whisper!\U0001f600\nCheck back here to see some output from your transcriptions.\nDon't worry, they will also be saved on the computer!\U0001f64f")
+        print("Welcome to Local Transcribe with Whisper!\U0001f600\nCheck back here to see some output from your transcriptions.\nDon't worry, they will also be saved on the computer!\U0001f64f")
 
         # Configure window
         self.title("Whisper Local Transcribe")
@@ -232,8 +232,9 @@ class App(ctk.CTk):
             self.after(0, lambda: self.update_progress(100, result))
             
         except Exception as e:
-            # Show any errors
-            self.after(0, lambda: self.update_progress(-1, str(e)))
+            # Capture the error message to avoid lambda scoping issues
+            error_message = str(e)
+            self.after(0, lambda msg=error_message: self.update_progress(-1, msg))
 
 
 if __name__ == "__main__":
